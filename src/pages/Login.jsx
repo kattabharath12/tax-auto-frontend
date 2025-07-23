@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 
 function Login() {
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [mfaCode, setMfaCode] = useState('');
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -19,7 +20,7 @@ function Login() {
     setError('');
     setMsg('');
     try {
-      await api.post('/auth/mfa/request', { email, password: mfaCode });
+      await api.post('/auth/mfa/request', { email, password });
       setStep(2);
       setMsg('MFA code sent (check logs or email in production).');
     } catch (err) {
@@ -35,9 +36,12 @@ function Login() {
     setError('');
     setMsg('');
     try {
-      const res = await api.post('/auth/token', `username=${encodeURIComponent(email)}&password=${encodeURIComponent(mfaCode)}`, {
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-      });
+      const res = await api.post('/auth/token', 
+        `username=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}&mfa_code=${encodeURIComponent(mfaCode)}`, 
+        {
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+        }
+      );
       setToken(res.data.access_token);
       setMsg('Login successful!');
       navigate('/');
@@ -55,11 +59,13 @@ function Login() {
           <Typography variant="h5" color="primary" gutterBottom>
             Login
           </Typography>
+          
           {step === 1 ? (
             <form onSubmit={handleMfaRequest}>
               <TextField
                 fullWidth
                 label="Email"
+                type="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 margin="normal"
@@ -69,8 +75,8 @@ function Login() {
                 fullWidth
                 label="Password"
                 type="password"
-                value={mfaCode}
-                onChange={e => setMfaCode(e.target.value)}
+                value={password}
+                onChange={e => setPassword(e.target.value)}
                 margin="normal"
                 required
               />
@@ -82,7 +88,7 @@ function Login() {
                 sx={{ mt: 2 }}
                 disabled={loading}
               >
-                {loading ? <CircularProgress size={24} /> : 'Request MFA'}
+                {loading ? <CircularProgress size={24} /> : 'Request MFA Code'}
               </Button>
             </form>
           ) : (
@@ -100,6 +106,7 @@ function Login() {
                 value={mfaCode}
                 onChange={e => setMfaCode(e.target.value)}
                 margin="normal"
+                placeholder="Enter 6-digit code"
                 required
               />
               <Button
@@ -112,8 +119,31 @@ function Login() {
               >
                 {loading ? <CircularProgress size={24} /> : 'Login'}
               </Button>
+              <Button
+                variant="text"
+                fullWidth
+                onClick={() => {
+                  setStep(1);
+                  setMfaCode('');
+                  setError('');
+                  setMsg('');
+                }}
+                sx={{ mt: 1 }}
+              >
+                Back to Login
+              </Button>
             </form>
           )}
+
+          {/* Register Link */}
+          {step === 1 && (
+            <Box sx={{ mt: 2, textAlign: 'center' }}>
+              <Button variant="text" onClick={() => navigate('/register')}>
+                Don't have an account? Register
+              </Button>
+            </Box>
+          )}
+
           {msg && <Alert severity="success" sx={{ mt: 2 }}>{msg}</Alert>}
           {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
         </CardContent>
