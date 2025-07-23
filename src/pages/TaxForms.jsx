@@ -12,12 +12,11 @@ import {
   Tabs,
   Tab,
   Paper,
-  Divider,
   Chip
 } from '@mui/material';
 import { Save, Calculate, AutoAwesome } from '@mui/icons-material';
 import api from '../utils/api';
-import { mapDocumentToForm, validateFormData } from '../utils/formMapping';
+import { mapDocumentToForm } from '../utils/formMapping';
 
 function TabPanel({ children, value, index, ...other }) {
   return (
