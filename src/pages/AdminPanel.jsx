@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Card,
-  CardContent,
   Typography,
   Button,
   Table,
@@ -24,7 +23,7 @@ import {
   Tabs,
   Tab
 } from '@mui/material';
-import { Visibility, Edit, Delete, Add, Refresh } from '@mui/icons-material';
+import { Visibility, Edit, Delete, Refresh } from '@mui/icons-material';
 import api from '../utils/api';
 
 function TabPanel({ children, value, index, ...other }) {
@@ -52,11 +51,34 @@ function AdminPanel() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogType, setDialogType] = useState('');
 
-  useEffect(() => {
-    loadData();
-  }, [activeTab]);
+  const loadUsers = useCallback(async () => {
+    try {
+      const response = await api.get('/admin/users');
+      setUsers(response.data);
+    } catch (err) {
+      throw new Error('Failed to load users');
+    }
+  }, []);
 
-  const loadData = async () => {
+  const loadSubmissions = useCallback(async () => {
+    try {
+      const response = await api.get('/admin/submissions');
+      setSubmissions(response.data);
+    } catch (err) {
+      throw new Error('Failed to load submissions');
+    }
+  }, []);
+
+  const loadPayments = useCallback(async () => {
+    try {
+      const response = await api.get('/admin/payments');
+      setPayments(response.data);
+    } catch (err) {
+      throw new Error('Failed to load payments');
+    }
+  }, []);
+
+  const loadData = useCallback(async () => {
     setLoading(true);
     setError('');
     
@@ -79,34 +101,11 @@ function AdminPanel() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeTab, loadUsers, loadSubmissions, loadPayments]);
 
-  const loadUsers = async () => {
-    try {
-      const response = await api.get('/admin/users');
-      setUsers(response.data);
-    } catch (err) {
-      throw new Error('Failed to load users');
-    }
-  };
-
-  const loadSubmissions = async () => {
-    try {
-      const response = await api.get('/admin/submissions');
-      setSubmissions(response.data);
-    } catch (err) {
-      throw new Error('Failed to load submissions');
-    }
-  };
-
-  const loadPayments = async () => {
-    try {
-      const response = await api.get('/admin/payments');
-      setPayments(response.data);
-    } catch (err) {
-      throw new Error('Failed to load payments');
-    }
-  };
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const handleView = (item, type) => {
     setSelectedItem(item);
