@@ -45,9 +45,11 @@ function PaymentPage() {
   const loadPaymentHistory = async () => {
     try {
       const response = await api.get('/payments/history');
-      setPaymentHistory(response.data);
+      setPaymentHistory(response.data || []);
     } catch (err) {
       console.error('Failed to load payment history:', err);
+      // Set empty array if API fails
+      setPaymentHistory([]);
     }
   };
 
@@ -56,17 +58,29 @@ function PaymentPage() {
       const response = await api.post('/tax/calculate', {
         form_1040: {},
         schedule_a: {},
-        schedule_c: {}
+        schedule_c: {},
+        filing_status: "single",
+        state: "CA"
       });
       setTaxCalculation(response.data);
-      if (response.data.tax_owed > 0) {
+      // Check if there's an amount due
+      const amountDue = response.data.amount_due || response.data.tax_owed || 0;
+      if (amountDue > 0) {
         setPaymentData(prev => ({
           ...prev,
-          amount: response.data.tax_owed.toFixed(2)
+          amount: amountDue.toFixed(2)
         }));
       }
     } catch (err) {
       console.error('Failed to load tax calculation:', err);
+      // Set a default calculation if API fails
+      setTaxCalculation({
+        total_income: 0,
+        tax_owed: 0,
+        total_withholding: 0,
+        refund_amount: 0,
+        amount_due: 0
+      });
     }
   };
 
@@ -105,7 +119,7 @@ function PaymentPage() {
       }
 
       const response = await api.post('/payments/charge', payload);
-      setMessage(`Payment successful! Transaction ID: ${response.data.transaction_id}`);
+      setMessage(`Payment successful! Transaction ID: ${response.data.transaction_id || response.data.id}`);
       
       // Clear form
       setPaymentData({
@@ -242,7 +256,7 @@ function PaymentPage() {
               <Grid item xs={12} md={3}>
                 <Paper sx={{ p: 2, textAlign: 'center' }}>
                   <Typography variant="h6" color={taxCalculation.refund_amount > 0 ? 'success.main' : 'error'}>
-                    ${Math.abs(taxCalculation.refund_amount || 0).toFixed(2)}
+                    ${Math.abs(taxCalculation.refund_amount || taxCalculation.amount_due || 0).toFixed(2)}
                   </Typography>
                   <Typography variant="body2">
                     {taxCalculation.refund_amount > 0 ? 'Refund Expected' : 'Amount Due'}
@@ -340,23 +354,23 @@ function PaymentPage() {
                 <ListItem key={payment.id} sx={{ border: '1px solid', borderColor: 'grey.300', mb: 1, borderRadius: 1 }}>
                   <Receipt sx={{ mr: 2, color: 'primary.main' }} />
                   <ListItemText
-                    primary={`$${payment.amount.toFixed(2)} - ${payment.description}`}
+                    primary={`$${payment.amount?.toFixed(2) || '0.00'} - ${payment.description || 'Tax Payment'}`}
                     secondary={
                       <Box>
                         <Typography variant="body2" color="text.secondary">
-                          Date: {new Date(payment.payment_date).toLocaleDateString()}
+                          Date: {payment.payment_date ? new Date(payment.payment_date).toLocaleDateString() : 'N/A'}
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
-                          Transaction ID: {payment.transaction_id}
+                          Transaction ID: {payment.transaction_id || payment.id || 'N/A'}
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
-                          Method: {payment.payment_method.toUpperCase()}
+                          Method: {payment.payment_method?.toUpperCase() || 'N/A'}
                         </Typography>
                       </Box>
                     }
                   />
                   <Chip
-                    label={payment.status}
+                    label={payment.status || 'pending'}
                     color={payment.status === 'completed' ? 'success' : 'default'}
                     size="small"
                   />
