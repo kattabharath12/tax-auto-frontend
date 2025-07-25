@@ -1,6 +1,5 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { ErrorBoundary } from './components/ErrorBoundary'; // ADD THIS
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Profile from './pages/Profile';
@@ -17,29 +16,27 @@ function PrivateRoute({ children }) {
 
 function App() {
   return (
-    <ErrorBoundary> {/* ADD THIS */}
-      <Router>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route
-            path="/"
-            element={
-              <PrivateRoute>
-                <Dashboard />
-              </PrivateRoute>
-            }
-          >
-            <Route path="profile" element={<Profile />} />
-            <Route path="upload" element={<DocumentUpload />} />
-            <Route path="forms" element={<TaxForms />} />
-            <Route path="payments" element={<PaymentPage />} />
-            <Route path="admin" element={<AdminPanel />} />
-          </Route>
-          <Route path="*" element={<Navigate to="/" />} />
-        </Routes>
-      </Router>
-    </ErrorBoundary> {/* ADD THIS */}
+    <Router>
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route
+          path="/"
+          element={
+            <PrivateRoute>
+              <Dashboard />
+            </PrivateRoute>
+          }
+        >
+          <Route path="profile" element={<Profile />} />
+          <Route path="upload" element={<DocumentUpload />} />
+          <Route path="forms" element={<TaxForms />} />
+          <Route path="payments" element={<PaymentPage />} />
+          <Route path="admin" element={<AdminPanel />} />
+        </Route>
+        <Route path="*" element={<Navigate to="/" />} />
+      </Routes>
+    </Router>
   );
 }
 
