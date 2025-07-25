@@ -54,8 +54,10 @@ function AdminPanel() {
   const loadUsers = useCallback(async () => {
     try {
       const response = await api.get('/admin/users');
-      setUsers(response.data);
+      setUsers(response.data || []);
     } catch (err) {
+      console.error('Failed to load users:', err);
+      setUsers([]);
       throw new Error('Failed to load users');
     }
   }, []);
@@ -63,8 +65,10 @@ function AdminPanel() {
   const loadSubmissions = useCallback(async () => {
     try {
       const response = await api.get('/admin/submissions');
-      setSubmissions(response.data);
+      setSubmissions(response.data.submissions || []);
     } catch (err) {
+      console.error('Failed to load submissions:', err);
+      setSubmissions([]);
       throw new Error('Failed to load submissions');
     }
   }, []);
@@ -72,8 +76,10 @@ function AdminPanel() {
   const loadPayments = useCallback(async () => {
     try {
       const response = await api.get('/admin/payments');
-      setPayments(response.data);
+      setPayments(response.data.payments || []);
     } catch (err) {
+      console.error('Failed to load payments:', err);
+      setPayments([]);
       throw new Error('Failed to load payments');
     }
   }, []);
@@ -166,7 +172,7 @@ function AdminPanel() {
               <TableCell>{user.email}</TableCell>
               <TableCell>{user.name || 'N/A'}</TableCell>
               <TableCell>{user.state || 'N/A'}</TableCell>
-              <TableCell>{new Date(user.created_at).toLocaleDateString()}</TableCell>
+              <TableCell>{user.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}</TableCell>
               <TableCell>
                 <Chip
                   label={user.is_active ? 'Active' : 'Inactive'}
@@ -179,6 +185,7 @@ function AdminPanel() {
                   size="small"
                   onClick={() => handleView(user, 'user')}
                   startIcon={<Visibility />}
+                  sx={{ mr: 1 }}
                 >
                   View
                 </Button>
@@ -186,6 +193,7 @@ function AdminPanel() {
                   size="small"
                   onClick={() => handleEdit(user, 'user')}
                   startIcon={<Edit />}
+                  sx={{ mr: 1 }}
                 >
                   Edit
                 </Button>
@@ -224,7 +232,7 @@ function AdminPanel() {
             <TableRow key={submission.id}>
               <TableCell>{submission.id}</TableCell>
               <TableCell>{submission.user_email}</TableCell>
-              <TableCell>{submission.form_type}</TableCell>
+              <TableCell>{submission.form_type || 'N/A'}</TableCell>
               <TableCell>
                 <Chip
                   label={submission.status}
@@ -232,13 +240,14 @@ function AdminPanel() {
                   size="small"
                 />
               </TableCell>
-              <TableCell>{new Date(submission.submission_date).toLocaleDateString()}</TableCell>
+              <TableCell>{submission.submission_date ? new Date(submission.submission_date).toLocaleDateString() : 'N/A'}</TableCell>
               <TableCell>${submission.tax_owed?.toFixed(2) || '0.00'}</TableCell>
               <TableCell>
                 <Button
                   size="small"
                   onClick={() => handleView(submission, 'submission')}
                   startIcon={<Visibility />}
+                  sx={{ mr: 1 }}
                 >
                   View
                 </Button>
@@ -277,17 +286,17 @@ function AdminPanel() {
             <TableRow key={payment.id}>
               <TableCell>{payment.id}</TableCell>
               <TableCell>{payment.user_email}</TableCell>
-              <TableCell>${payment.amount.toFixed(2)}</TableCell>
-              <TableCell>{payment.payment_method.toUpperCase()}</TableCell>
+              <TableCell>${payment.amount?.toFixed(2) || '0.00'}</TableCell>
+              <TableCell>{payment.payment_method?.toUpperCase() || 'N/A'}</TableCell>
               <TableCell>
                 <Chip
-                  label={payment.status}
+                  label={payment.status || 'pending'}
                   color={payment.status === 'completed' ? 'success' : 'warning'}
                   size="small"
                 />
               </TableCell>
-              <TableCell>{new Date(payment.payment_date).toLocaleDateString()}</TableCell>
-              <TableCell>{payment.transaction_id}</TableCell>
+              <TableCell>{payment.payment_date ? new Date(payment.payment_date).toLocaleDateString() : 'N/A'}</TableCell>
+              <TableCell>{payment.transaction_id || 'N/A'}</TableCell>
               <TableCell>
                 <Button
                   size="small"
@@ -378,6 +387,10 @@ function AdminPanel() {
             <Box display="flex" justifyContent="center" p={3}>
               <CircularProgress />
             </Box>
+          ) : users.length === 0 ? (
+            <Box p={3} textAlign="center">
+              <Typography color="text.secondary">No users found</Typography>
+            </Box>
           ) : (
             renderUsersTable()
           )}
@@ -388,6 +401,10 @@ function AdminPanel() {
             <Box display="flex" justifyContent="center" p={3}>
               <CircularProgress />
             </Box>
+          ) : submissions.length === 0 ? (
+            <Box p={3} textAlign="center">
+              <Typography color="text.secondary">No submissions found</Typography>
+            </Box>
           ) : (
             renderSubmissionsTable()
           )}
@@ -397,6 +414,10 @@ function AdminPanel() {
           {loading ? (
             <Box display="flex" justifyContent="center" p={3}>
               <CircularProgress />
+            </Box>
+          ) : payments.length === 0 ? (
+            <Box p={3} textAlign="center">
+              <Typography color="text.secondary">No payments found</Typography>
             </Box>
           ) : (
             renderPaymentsTable()
