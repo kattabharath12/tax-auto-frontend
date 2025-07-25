@@ -54,9 +54,11 @@ function TaxForms() {
   const loadUserDocuments = async () => {
     try {
       const response = await api.get('/files/user-documents');
-      setUploadedDocs(response.data);
+      setUploadedDocs(response.data || []);
     } catch (err) {
+      console.error('Failed to load documents:', err);
       setError('Failed to load documents');
+      setUploadedDocs([]);
     }
   };
 
@@ -122,9 +124,11 @@ function TaxForms() {
 
     try {
       const response = await api.post('/tax/calculate', {
-        form_1040: forms['1040'],
-        schedule_a: forms['schedule_a'],
-        schedule_c: forms['schedule_c']
+        form_1040: forms['1040'] || {},
+        schedule_a: forms['schedule_a'] || {},
+        schedule_c: forms['schedule_c'] || {},
+        filing_status: "single",
+        state: "CA"
       });
       setCalculation(response.data);
       setMessage('Tax calculation completed!');
@@ -143,7 +147,7 @@ function TaxForms() {
     try {
       await api.post('/tax/save-form', {
         form_type: formType,
-        form_data: forms[formType]
+        form_data: forms[formType] || {}
       });
       setMessage(`${formType.toUpperCase()} form saved successfully!`);
     } catch (err) {
@@ -498,7 +502,7 @@ function TaxForms() {
               <Grid item xs={12} md={3}>
                 <Paper sx={{ p: 2, textAlign: 'center' }}>
                   <Typography variant="h6" color="secondary">
-                    ${calculation.total_deductions?.toFixed(2) || '0.00'}
+                    ${calculation.total_deductions?.toFixed(2) || calculation.deductions?.toFixed(2) || '0.00'}
                   </Typography>
                   <Typography variant="body2">Total Deductions</Typography>
                 </Paper>
@@ -514,7 +518,7 @@ function TaxForms() {
               <Grid item xs={12} md={3}>
                 <Paper sx={{ p: 2, textAlign: 'center' }}>
                   <Typography variant="h6" color={calculation.refund_amount > 0 ? 'success.main' : 'error'}>
-                    ${Math.abs(calculation.refund_amount || 0).toFixed(2)}
+                    ${Math.abs(calculation.refund_amount || calculation.amount_due || 0).toFixed(2)}
                   </Typography>
                   <Typography variant="body2">
                     {calculation.refund_amount > 0 ? 'Refund' : 'Amount Due'}
