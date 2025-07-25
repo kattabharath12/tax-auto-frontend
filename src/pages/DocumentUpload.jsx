@@ -71,6 +71,9 @@ function DocumentUpload() {
       setUploadedDocs(prev => [...prev, ...results]);
       setFiles([]);
       setMessage(`Successfully uploaded ${results.length} document(s)`);
+      
+      // Reload documents to get the latest list
+      await loadUserDocuments();
     } catch (err) {
       setError(err.response?.data?.detail || 'Upload failed');
     } finally {
@@ -81,9 +84,32 @@ function DocumentUpload() {
   const loadUserDocuments = async () => {
     try {
       const response = await api.get('/files/user-documents');
-      setUploadedDocs(response.data);
+      setUploadedDocs(response.data || []);
     } catch (err) {
+      console.error('Failed to load documents:', err);
       setError('Failed to load documents');
+      setUploadedDocs([]); // Set empty array on error
+    }
+  };
+
+  const handleDownload = async (doc) => {
+    try {
+      const response = await api.get(`/files/download/${doc.id}`, {
+        responseType: 'blob'
+      });
+      
+      // Create blob link to download
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = doc.filename || 'document';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Download failed:', err);
+      setError('Download failed');
     }
   };
 
@@ -186,33 +212,35 @@ function DocumentUpload() {
                 <ListItem key={doc.id} sx={{ border: '1px solid', borderColor: 'grey.300', mb: 1, borderRadius: 1 }}>
                   <Description sx={{ mr: 2, color: 'primary.main' }} />
                   <ListItemText
-                    primary={doc.filename}
+                    primary={doc.filename || 'Unknown filename'}
                     secondary={
                       <Box>
                         <Typography variant="body2" color="text.secondary">
-                          Uploaded: {new Date(doc.upload_date).toLocaleDateString()}
+                          Uploaded: {doc.upload_date ? new Date(doc.upload_date).toLocaleDateString() : 'N/A'}
                         </Typography>
-                        {doc.extracted_data && (
+                        {(doc.extracted_data || doc.document_type) && (
                           <Box sx={{ mt: 1 }}>
                             <Chip
-                              label={getDocumentTypeDisplayName(doc.extracted_data.document_type)}
+                              label={getDocumentTypeDisplayName(
+                                doc.extracted_data?.document_type || doc.document_type || 'Unknown'
+                              )}
                               size="small"
                               color="primary"
                               variant="outlined"
                             />
-                            {doc.extracted_data.document_type === 'W-2' && (
+                            {(doc.extracted_data?.document_type === 'W-2' || doc.document_type === 'W-2') && (
                               <Typography variant="caption" display="block" sx={{ mt: 0.5 }}>
-                                Wages: ${doc.extracted_data.wages || 0}
+                                Wages: ${doc.extracted_data?.wages || 0}
                               </Typography>
                             )}
-                            {doc.extracted_data.document_type === '1099-NEC' && (
+                            {(doc.extracted_data?.document_type === '1099-NEC' || doc.document_type === '1099-NEC') && (
                               <Typography variant="caption" display="block" sx={{ mt: 0.5 }}>
-                                Compensation: ${doc.extracted_data.nonemployee_compensation || 0}
+                                Compensation: ${doc.extracted_data?.nonemployee_compensation || 0}
                               </Typography>
                             )}
-                            {doc.extracted_data.document_type === 'W-9' && (
+                            {(doc.extracted_data?.document_type === 'W-9' || doc.document_type === 'W-9') && (
                               <Typography variant="caption" display="block" sx={{ mt: 0.5 }}>
-                                Name: {doc.extracted_data.name || 'N/A'}
+                                Name: {doc.extracted_data?.name || 'N/A'}
                               </Typography>
                             )}
                           </Box>
@@ -223,7 +251,7 @@ function DocumentUpload() {
                   <Button
                     size="small"
                     variant="outlined"
-                    onClick={() => window.open(`${api.defaults.baseURL}/files/download/${doc.id}`, '_blank')}
+                    onClick={() => handleDownload(doc)}
                   >
                     Download
                   </Button>
